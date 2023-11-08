@@ -75,7 +75,7 @@ def user_carts():
 @main.route("/cart", methods=["POST"])
 @jwt_required()
 @cross_origin(
-    origins=os.environ.get('FRONTEND_URL'),
+    origins="https://cautious-carnival-xpqwxwxp9p4h65xp-3000.app.github.dev",
     supports_credentials=True,
 )
 def add_to_cart():
@@ -85,7 +85,19 @@ def add_to_cart():
 
     # Initialize the session cart if it does not exist
     if "cart" not in session:
-        session["orders"] = []
+        session["cart"] = []
+
+    # Create a cart item
+    cart_item = {"user_id": user_id, "bicycle_id": bicycle_id, "quantity": quantity}
+
+    # Add the item to the session cart
+    session["cart"].append(cart_item)
+
+    # Save the session
+    session.modified = True
+
+    return jsonify({"success": "true", "cart": session["cart"]})
+    # return jsonify({'success': 'true', 'cart': session['cart'], 'user_id': user_id})
 
     # Create a orders item
     orders_item = {"user_id": user_id, "bicycle_id": bicycle_id, "quantity": quantity}
@@ -155,6 +167,29 @@ def get_reviews(bicycle_id):
     print("Hello")
     reviews = BicycleReview.query.filter_by(bicycle_id=bicycle_id).all()
     return jsonify([review.serialize() for review in reviews]), 200
+
+
+@main.route("/cart")
+@jwt_required()
+@cross_origin(
+    origins="https://cautious-carnival-xpqwxwxp9p4h65xp-3000.app.github.dev",
+    supports_credentials=True,
+)
+def user_carts():
+    user_id = get_jwt_identity()
+    cart_items = [
+        item for item in session.get("cart", []) if item["user_id"] == user_id
+    ]
+
+    response = {
+        "success": "true",
+        "shopping_cart": {
+            "user_id": user_id,
+        },
+        "shopping_cart_items": cart_items,
+    }
+    return jsonify(response)
+
 
 @main.route("/api/create-user", methods=["POST"])
 @cross_origin(origin="process.env.FRONTEND_URL")
@@ -298,6 +333,7 @@ def send_support_email():
     except Exception as e:
         return jsonify({"message": "Error sending support email", "error": str(e)}), 500
 
+
 # endpoint for checkout session
 @main.route("/create-checkout-session", methods=["POST"])
 @cross_origin()
@@ -305,23 +341,20 @@ def send_support_email():
 def create_checkout_session():
     try:
         # Get 'items' from the JSON request
-        stripe.api_key = current_app.config['STRIPE_API_KEY']
-        
-        # Get items from the JSON request
-        items = request.json.get('items') 
-        line_items = []
-        for i in items:
-            line_items.append({ "price": i["price"], "quantity": i["quantity"]})
-           
-        print(line_items)
-        print(items) 
-        # Create a Stripe checkout session
+        items = request.json.get("items")
+
+        stripe.api_key = current_app.config["STRIPE_API_KEY"]
+
+        # Get price_id and quantity from the JSON request
+        price_id = request.json.get("price_id")
+        quantity = request.json.get("quantity")
+
         checkout_session = stripe.checkout.Session.create(
-            mode='payment',
             payment_method_types=["card"],
-            line_items=line_items,
-            success_url=current_app.config['FRONTEND_URL'] + '/thanksMessage',
-            cancel_url=current_app.config['FRONTEND_URL'],
+            line_items=items,  # Pass the 'items' from the request
+            mode="payment",
+            success_url=current_app.config["FRONTEND_URL"] + "/thanksMessage",
+            cancel_url=current_app.config["FRONTEND_URL"],
         )
 
         # Prepare line items for Stripe checkout session
@@ -337,31 +370,4 @@ def create_checkout_session():
             order_item.bicycle_id = i["id"]
             order_item.quantity = i["quantity"]
 
-            db.session.add(order_item)
-            db.session.commit()
-        
-        # Return the checkout session ID as a JSON response
-        return jsonify({ "url": checkout_session.url })
-
-
-    except Exception as e:
-        # Handle exceptions gracefully and return an error response
-        return jsonify({'error': str(e)}), 500  # 500 Internal Server Error
-
-# Route for handling Stripe webhooks
-@main.route('/webhook', methods=['POST'])
-@cross_origin()
-def webhook():
-        try:
-            payload = request.data
-            print(payload)
-            # Verify that the request came from Stripe
-            # sig_header = request.headers.get("stripe-signature")
-            # event = stripe.Event.construct_from(payload, sig_header, current_app.config['WEBHOOK_KEY'])
-        except ValueError:
-            return "Bad payload"
-        except stripe.error.SignatureVerificationError:
-            print("Invalid signature!")
-            return "Bad signature!"
-    
-        return "Success"
+    return jsonify(checkout_session.url), 200

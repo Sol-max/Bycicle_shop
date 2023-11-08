@@ -6,9 +6,13 @@ import "../../styles/shoppingCart.css"
 import { useTheme } from "../themeContext";
 
 export const ShoppingCartOne = (props) => {
-  const [textarea, setTextarea] = useState("");
-  const { store, actions } = useContext(Context);
-  const { theme } = useTheme();
+	const { store } = useContext(Context);
+
+	console.log('store.cart in ShoppingCartOne:', store.cart);
+	console.log('Props in ShoppingCartOne:', props);
+	const [quantity, setQuantity] = useState(1);
+	const [textarea, setTextarea] = useState("");
+
 
   const textareaClick = () => {
     const note = textarea;
@@ -28,69 +32,113 @@ export const ShoppingCartOne = (props) => {
     ));
   }
 
-  return (
-    <div className="container min-height-100 shoppingcart-container" data-theme={theme}>
-      <br />
-      <div>
-        <h1 className="cart-title">Shopping Cart</h1>
-      </div>
-      <div>
-        <div className="cart-description">
-          <div className="product-order1">
-            <p>Product</p>
-            <p className="price">Price</p>
-          </div>
-          <div className="product-order2">
-            <p className="quantity">Quantity</p>
-            <p className="price">Total</p>
-          </div>
-        </div>
-        {renderCartItems()}
-      </div>
-      <div className="row">
-        <form className="col-sm-6 col-md-6 col-lg-6" onSubmit={textareaClick}>
-          <div className="cart-form">
-            <label>Add a note to your order:</label>
-            <br />
-            <textarea
-              className="form-control mt-2"
-              id="exampleFormControlTextarea1"
-              rows="6"
-              value={textarea}
-              onChange={(e) => setTextarea(e.target.value)}
-            ></textarea>
-          </div>
-          <div className="d-flex mt-2">
-            <input
-              className="bg-dark form-shooping "
-              type="checkbox"
-              value=""
-              id="flexCheckDefault"
-            />
-            <Link className="link" to="/terms">
-              <p className="link-shopping ">
-                I approve terms and conditions
-              </p>
-            </Link>
-          </div>
-        </form>
-        <div className="btn-set-check col-sm-6 col-md-6 col-lg-6">
-          <button
-            className="btn-Check col-sm-6 col-md-6 col-lg-12 mb-3"
-            type="submit"
-            id="checkout"
-            aria-label="checkout"
-            onClick={() => props.onClick()} // Call the onClick function directly
-          >
-            Check Out
-          </button>
-          <Link className="link-shopping" to="/">
-            <button className="btn-Check col-sm-6 col-md-6 col-lg-12" id="continueShopping" aria-label="continueShopping" type="submit">
-              Continue Shopping
-            </button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
+	const onChangeQuantity = (e) => {
+		setQuantity(e.target.value);
+	};
+
+	//function to send the textarea text from the input to the order table
+	const textareaClick = (event) => {
+		// prevent the default form submission behavior
+		event.preventDefault();
+		
+	};
+
+	return (
+		<div className="container min-height-100">
+			<br />
+			<div>
+				<h1 className="cart-title">Shopping Cart</h1>
+			</div>
+			<div>
+				{props.items.map((item, index) => (
+					<div key={index}>
+						{console.log('Item:', item)}
+						<p>{item.product ? item.product.name : 'Name not available'}</p>
+						<p>Quantity: {item.quantity}</p>
+						<p>{item.product ? `Price: ${item.product.price}` : 'Price not available'}</p>
+					</div>
+				))}
+
+				<div className="cart-description">
+					<div className="product-order1">
+						<p>Product</p>
+						<p className="price" >Price</p>
+					</div>
+					<div className="product-order2">
+						<p>Quantity</p>
+						<p className="price">Total</p>
+					</div>
+				</div>
+				<div className="shopping-cart">
+					<div className="cart-details1">
+						<div className="cart-details2">
+							<img
+								src="https://mdbcdn.b-cdn.net/img/new/standard/city/041.webp"
+								className="img-cart"
+								alt="Generic placeholder image"
+							/>
+							<div>
+								<p>name</p>
+								<p className="smaller-p">d</p>
+							</div>
+						</div>
+						<div className="flex-end">
+							<p>€</p>
+						</div>
+					</div>
+					<div className="cart-details3">
+						<div className="set-btn">
+							<button className="btn-cart1" onClick={minusQuantity}>-</button>
+							<input
+								className="btn-middle"
+								min="0"
+								name="quantity"
+								value={quantity}
+								onChange={onChangeQuantity}
+								type="text"
+							/>
+							<button className="btn-cart2" onClick={plusQuantity}>+</button>
+						</div>
+						<div>
+							<p>€</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div className="subtotal mt-2">
+				<p>Subtotal:</p>
+			</div>
+			<div className="row">
+				<form className="col-sm-6 col-md-6 col-lg-6" onSubmit={textareaClick}>
+					<div className="cart-form">
+						<label>Add a note to your order:</label>
+						<br />
+						<textarea className="form-control mt-2" id="exampleFormControlTextarea1" rows="4" value={textarea} onChange={(e) => setTextarea(e.target.value)}></textarea>
+					</div>
+					<div className=" form-check cart-form-check mt-2">
+						<input className="ship-check-input form-check-input" type="checkbox" value="" id="flexCheckDefault" />
+						<Link className="link" to="/terms">
+							<label className="form-check-label link-shopping my-form-check-label">
+								I approve terms and conditions
+							</label>
+						</Link>
+					</div>
+				</form>
+				<div className="btn-set-check col-sm-6 col-md-6 col-lg-6">
+					<button
+						className="btn-Check col-sm-6 col-md-6 col-lg-12 mb-3"
+						type="submit"
+						onClick={() => {
+							props.onClick(props.items);
+						}}
+					>
+						Check Out
+					</button>
+					<Link className="link-shopping" to="/">
+						<button className="btn-Check col-sm-6 col-md-6 col-lg-12" type="button">Continue Shopping</button>
+					</Link>
+				</div>
+			</div>
+		</div>
+	);
+};

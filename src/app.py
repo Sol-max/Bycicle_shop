@@ -43,6 +43,8 @@ def create_app():
 
     # Load configurations
     app.config.from_object(Config)
+    app.config['SECRET_KEY'] = 'your_secret_key_here'
+
 
     # Initialize database
     db.init_app(app)
@@ -52,9 +54,9 @@ def create_app():
     jwt = JWTManager(app)
 
     # Initialize CORS
-    CORS(app, origins="*")
-    # CORS(app, origins=[os.getenv("FRONTEND_URL")])
-
+    #CORS(app, origins="*")
+    CORS(app, origins=[os.getenv("FRONTEND_URL")], supports_credentials=True)
+    
     # Initialize Admin
     setup_admin(app)
 

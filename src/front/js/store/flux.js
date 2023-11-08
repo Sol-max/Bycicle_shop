@@ -7,6 +7,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 		store: {
 			message: null,
 			user: [],
+			// cart: [],
 			token: [],
 			orders: [],
 			cart: [],
@@ -91,7 +92,30 @@ const getState = ({ getStore, getActions, setStore }) => {
 				localStorage.removeItem('access_token'); // Always remove token
 
 			},
-			addToCart: (image_url, name, price, quantity, price_id, bicycle_id) => {
+			getCartItems: async () => {
+				try {
+				  const token = localStorage.getItem('access_token');
+				  if (!token) {
+					console.error('No token found!');
+					throw new Error('No token found!');
+				  }
+			  
+				  const response = await axios.get(`${process.env.BACKEND_URL}/cart`, {
+					headers: { 'Authorization': `Bearer ${token}` },
+				  });
+			  
+				  if (response.data && response.data.shopping_cart_items) {
+					setStore({ cart: response.data.shopping_cart_items });
+				  } else {
+					console.error('Invalid server response:', response.data);
+				  }
+				} catch (error) {
+				  console.error('Error fetching cart data:', error);
+				}
+			  },
+			  
+			
+			addToCart: (bicycle_id, quantity) => {
 				const store = getStore();
 				const token = localStorage.getItem('access_token');
 
@@ -101,35 +125,28 @@ const getState = ({ getStore, getActions, setStore }) => {
 				}
 
 				const payload = {
-					image_url: image_url,
-					name: name,
-					price: price,
+					bicycle_id: id,
 					quantity: quantity,
 					price_id: price_id,
-					bicycle_id: bicycle_id
 				};
-
-				setStore({ cart: store.cart.concat(payload) })
-				/*console.log('Payload:', payload);
-				console.log('Backend URL:', process.env.BACKEND_URL);
-			  
-				axios.post(`${process.env.BACKEND_URL}/cart`, payload, {
-				  headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${token}`
-				  },
-				  withCredentials: true,
-				})
-				.then((response) => {
-				  console.log(response);
-				  console.log('Item added to cart:', response.data);
-				  sessionStorage.setItem('cart', JSON.stringify(response.data.orders));
-				  setStore({ orders: response.data.orders });
-				})
-				.catch((error) => {
-				  console.error('Error adding items to cart:', error.response ? error.response.data : error.message);
-				});*/
+				axios
+					.post(process.env.BACKEND_URL + "/cart", payload, {
+						headers: { Authorization: `Bearer ${props.token}` },
+					})
+					.then((response) => {
+						console.log(response);
+						if (response.data.success === "true") {
+							console.log(response.data.access_token);
+						} else {
+						}
+					})
+					.catch((error) => {
+						if (error.response) {
+							console.log(error.response);
+						}
+					});
 			},
+
 
 			submitReview: (name, title, review, id, rating, setMessage, setReview, setTitle, setName, getData, token) => {
 				return new Promise((resolve, reject) => {
@@ -235,7 +252,30 @@ const getState = ({ getStore, getActions, setStore }) => {
 					console.error("An error occurred while fetching the profile:", error);
 					return null;
 				}
-			}*/
+			},
+			buyNow: (id, quantity, props, navigate) => {
+				const payload = {
+					bicycle_id: id,
+					quantity: quantity,
+				};
+				axios
+					.post(`${process.env.BACKEND_URL}/cart`, payload, {
+						headers: { Authorization: `Bearer ${props.token}` },
+					})
+					.then((response) => {
+						console.log(response);
+						if (response.data.success === "true") {
+							console.log(response.data.access_token);
+							navigate("/products");
+						} else {
+						}
+					})
+					.catch((error) => {
+						if (error.response) {
+							console.log(error.response);
+						}
+					});
+			},
 
 			getData: async (id) => {
 				try {
@@ -288,64 +328,36 @@ const getState = ({ getStore, getActions, setStore }) => {
 				}
 				return false;
 			},
-			
-			checkout: async () => {
-				const token = localStorage.getItem('access_token');
+			// Function to make the checkout
+			checkout: async (items
+				) => {
+				const opts = {
+				  method: "POST",
+				  headers: {
+					"Content-Type": "application/json",
+				  },
+				  body: JSON.stringify(items), // Convert items to JSON string
+				};
+				console.log("JSON Data:", JSON.stringify(items));
 				try {
-				  let items = [];
-				  let store = getStore();
-			  
-				  // Validate if store.cart is an array
-				  if (!Array.isArray(store.cart)) {
-					throw new Error("Cart is not an array");
-				  }
-			  
-				  // Validate and format cart items
-				  store.cart.forEach(c => {
-					if (typeof c.price_id !== 'string' || typeof c.quantity !== 'number') {
-					  throw new Error("Invalid cart item");
-					}
-					console.log(c)
-					// Push each item to the 'items' array
-					items.push({ price: c.price_id, quantity: c.quantity, id:c.bicycle_id});
-				  });
-			  
-				  // Check if there are items in the cart
-				  if (items.length === 0) {
-					throw new Error("No items in the cart");
-				  }
-			  
-				  console.log("Items:", items); // Debugging line
-				  const opts = {
-					method: "POST",
-					headers: {
-					  "Content-Type": "application/json", // Set the Content-Type header to JSON
-					  Authorization: `Bearer ${token}`
-					},
-					body: JSON.stringify({ items }), // Convert items to JSON string
-				  };
-			  
-				  console.log("JSON Data:", JSON.stringify({ items }));
-			  
 				  const resp = await fetch(
 					`${process.env.BACKEND_URL}/create-checkout-session`,
 					opts
 				  );
-			  
+				  console.log(resp);
 				  if (resp.ok) {
 					const data = await resp.json();
 					console.log(data);
 					// Redirect to Stripe Checkout by replacing the current URL
-					window.location.replace(data.url); // Assuming 'url' is the correct property
+					window.location.replace(data);
 				  } else {
 					console.error("Error:", resp.status, resp.statusText);
-					// Handle the error appropriately, e.g., show an error message to the user
+					// Handle the error appropriately
 				  }
 				} catch (error) {
 				  console.error("Error message:", error.message);
-				  // Handle the error appropriately, e.g., show an error message to the user
 				}
-			  },
+			},
 			// Function to send a POST request to your server to initiate the password reset process
 			resetPassword: async (token, email) => {
 				const opts = {
