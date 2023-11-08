@@ -82,7 +82,7 @@ def create_app():
             # Verify the tokenId with Google
             client_id = os.getenv("GOOGLE_CLIENT_ID")
 
-            google_info = requests.get('https://oauth2.googleapis.com/tokeninfo', params={'id_token': token_id})
+            google_info = requests.get('https://oauth2.googleapis.com/tokeninfo', params={'id_token': token_id})#
             google_user_info = google_info.json()
                    
             if 'error_description' in google_user_info:
