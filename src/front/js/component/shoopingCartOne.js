@@ -14,28 +14,6 @@ export const ShoppingCartOne = (props) => {
 	const [textarea, setTextarea] = useState("");
 
 
-  const textareaClick = () => {
-    const note = textarea;
-    console.log('Textarea clicked');
-    actions.sendNoteToServer(note);
-    setTextarea("");
-  };
-  // Function to render the items in the cart
-  const renderCartItems = () => {
-    console.log(store.cart)
-    if (!store.cart || store.cart.length === 0) {
-      return <p className="cart">Your cart is empty.</p>;
-    }
-
-    return store.cart.map((item, index) => (
-      <CartItem item={item} index={index} key={index} />
-    ));
-  }
-
-	const onChangeQuantity = (e) => {
-		setQuantity(e.target.value);
-	};
-
 	//function to send the textarea text from the input to the order table
 	const textareaClick = (event) => {
 		// prevent the default form submission behavior
